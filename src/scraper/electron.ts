@@ -18,16 +18,50 @@ import {
 	prepareTwitterScrape,
 } from "./common";
 
+/** Default timeout for page loading (10 seconds) */
+const LOAD_TIMEOUT_MS = 10000;
+
 /**
- * Async wrapper to load a URL in a BrowserWindow and wait for completion
+ * Async wrapper to load a URL in a BrowserWindow with timeout
  * @param window - Electron BrowserWindow instance
  * @param url - URL to load
- * @returns Promise that resolves on load finish or rejects on failure
+ * @param timeoutMs - Timeout in milliseconds
+ * @returns Promise that resolves on load finish, rejects on failure or timeout
  */
-async function load(window: any, url: string): Promise<void> {
+async function load(window: any, url: string, timeoutMs: number = LOAD_TIMEOUT_MS): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
-		window.webContents.on("did-finish-load", (event: any) => resolve(event));
-		window.webContents.on("did-fail-load", (event: any) => reject(event));
+		let resolved = false;
+
+		const cleanup = () => {
+			resolved = true;
+			window.webContents.removeListener("did-finish-load", onFinish);
+			window.webContents.removeListener("did-fail-load", onFail);
+		};
+
+		const onFinish = () => {
+			if (!resolved) {
+				cleanup();
+				resolve();
+			}
+		};
+
+		const onFail = (event: any) => {
+			if (!resolved) {
+				cleanup();
+				reject(event);
+			}
+		};
+
+		// Timeout to prevent infinite loading
+		setTimeout(() => {
+			if (!resolved) {
+				cleanup();
+				resolve(); // Resolve anyway, we'll try to get whatever title is available
+			}
+		}, timeoutMs);
+
+		window.webContents.on("did-finish-load", onFinish);
+		window.webContents.on("did-fail-load", onFail);
 		window.loadURL(url);
 	});
 }
@@ -41,8 +75,9 @@ async function electronGetPageTitle(url: string): Promise<string> {
 	const { remote } = electronPkg;
 	const { BrowserWindow } = remote;
 
+	let window: any = null;
 	try {
-		const window = new BrowserWindow({
+		window = new BrowserWindow({
 			width: 1000,
 			height: 600,
 			webPreferences: {
@@ -54,29 +89,29 @@ async function electronGetPageTitle(url: string): Promise<string> {
 		});
 		window.webContents.setAudioMuted(true);
 
-		window.webContents.on("will-navigate", (event: any, newUrl: any) => {
+		// Stop all redirects to prevent infinite loading
+		window.webContents.on("will-navigate", (event: any) => {
 			event.preventDefault();
-			window.loadURL(newUrl);
 		});
+
+		// Stop new window creation
+		window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
 		await load(window, url);
 
-		try {
-			const title = window.webContents.getTitle();
-			window.destroy();
+		const title = window.webContents.getTitle();
+		window.destroy();
+		window = null;
 
-			if (notBlank(title)) {
-				return title;
-			} else {
-				return url;
-			}
-		} catch (_ex) {
-			window.destroy();
-			return url;
-		}
+		return notBlank(title) ? title : url;
 	} catch (ex) {
 		console.error(ex);
 		return "";
+	} finally {
+		// Ensure window is always destroyed
+		if (window && !window.isDestroyed()) {
+			window.destroy();
+		}
 	}
 }
 
@@ -120,6 +155,9 @@ async function nonElectronGetPageTitle(url: string): Promise<string> {
 	}
 }
 
+/** Default timeout for HEAD request (5 seconds) */
+const HEAD_TIMEOUT_MS = 5000;
+
 /**
  * Attempts to determine the file type via HEAD request
  * @param url - URL to check
@@ -127,19 +165,31 @@ async function nonElectronGetPageTitle(url: string): Promise<string> {
  */
 async function tryGetFileType(url: string) {
 	try {
-		const response = await fetch(url, { method: "HEAD" });
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), HEAD_TIMEOUT_MS);
 
-		// Ensure site returns an ok status code before scraping
-		if (!response.ok) {
-			return "Site Unreachable";
-		}
+		try {
+			const response = await fetch(url, {
+				method: "HEAD",
+				signal: controller.signal,
+			});
 
-		// Ensure site is an actual HTML page and not a pdf or 3 gigabyte video file.
-		const contentType = response.headers.get("content-type");
-		if (!contentType?.includes("text/html")) {
-			return getUrlFinalSegment(url);
+			clearTimeout(timeoutId);
+
+			// Ensure site returns an ok status code before scraping
+			if (!response.ok) {
+				return "Site Unreachable";
+			}
+
+			// Ensure site is an actual HTML page and not a pdf or 3 gigabyte video file.
+			const contentType = response.headers.get("content-type");
+			if (!contentType?.includes("text/html")) {
+				return getUrlFinalSegment(url);
+			}
+			return null;
+		} finally {
+			clearTimeout(timeoutId);
 		}
-		return null;
 	} catch (_err) {
 		return null;
 	}

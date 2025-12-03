@@ -57,6 +57,14 @@ const ja: typeof en = {
 			name: "LinkPreview APIキー",
 			desc: "LinkPreview.netサービスのAPIキー。https://my.linkpreview.net/access_keys で取得できます。",
 		},
+		ignoreCodeBlocks: {
+			name: "コードブロックを無視",
+			desc: "コードブロックやインラインコード（バッククォート）内に貼り付けたURLのタイトルを取得しない。",
+		},
+		useTwitterProxy: {
+			name: "Twitter/Xプロキシを使用",
+			desc: "Twitter/X URLからタイトルを取得する際にfxtwitter.comを使用する。プロキシ変換が不要な場合は無効にしてください。",
+		},
 	},
 };
 

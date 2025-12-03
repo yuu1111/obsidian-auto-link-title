@@ -17,11 +17,12 @@ import {
 /**
  * Scrapes the title from a given URL using HTTP request
  * @param url - URL to scrape
+ * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, URL as fallback, or empty string on error
  */
-async function scrape(url: string): Promise<string> {
+async function scrape(url: string, useTwitterProxy: boolean): Promise<string> {
 	try {
-		const { scrapeUrl, headers } = prepareTwitterScrape(url);
+		const { scrapeUrl, headers } = prepareTwitterScrape(url, useTwitterProxy);
 
 		const response = await requestUrl({ url: scrapeUrl, headers });
 		const contentType = response.headers["content-type"];
@@ -59,8 +60,12 @@ async function scrape(url: string): Promise<string> {
 /**
  * Fetches the page title for a given URL using HTTP request
  * @param url - URL to fetch title from (http/https prefix added if missing)
+ * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title or empty string on error
  */
-export default async function getPageTitle(url: string): Promise<string> {
-	return scrape(normalizeUrl(url));
+export default async function getPageTitle(
+	url: string,
+	useTwitterProxy: boolean,
+): Promise<string> {
+	return scrape(normalizeUrl(url), useTwitterProxy);
 }

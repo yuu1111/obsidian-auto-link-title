@@ -149,6 +149,12 @@ export default class AutoLinkTitle extends Plugin {
 			return true;
 		}
 
+		// If inside code block and setting is enabled, just paste the URL
+		if (this.settings.ignoreCodeBlocks && CheckIf.isInsideCode(editor)) {
+			editor.replaceSelection(text);
+			return true;
+		}
+
 		// If URL is pasted over selected text and setting is enabled, use selection as title
 		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
 		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {

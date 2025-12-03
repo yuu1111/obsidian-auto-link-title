@@ -118,11 +118,15 @@ async function electronGetPageTitle(url: string): Promise<string> {
 /**
  * Fetches page title using simple HTTP request (fallback for non-Electron)
  * @param url - URL to fetch title from
+ * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, URL as fallback, or empty string on error
  */
-async function nonElectronGetPageTitle(url: string): Promise<string> {
+async function nonElectronGetPageTitle(
+	url: string,
+	useTwitterProxy: boolean,
+): Promise<string> {
 	try {
-		const { scrapeUrl, headers } = prepareTwitterScrape(url);
+		const { scrapeUrl, headers } = prepareTwitterScrape(url, useTwitterProxy);
 
 		const html = await request({ url: scrapeUrl, headers });
 
@@ -198,14 +202,18 @@ async function tryGetFileType(url: string) {
 /**
  * Fetches page title, using Electron if available, otherwise falls back to HTTP
  * @param url - URL to fetch title from (http/https prefix added if missing)
+ * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, file name for non-HTML, or error message
  */
-export default async function getPageTitle(url: string): Promise<string> {
+export default async function getPageTitle(
+	url: string,
+	useTwitterProxy: boolean,
+): Promise<string> {
 	url = normalizeUrl(url);
 
-	// For Twitter/X URLs, always use HTTP request with fxtwitter (BrowserWindow won't work well)
+	// For Twitter/X URLs, use HTTP request with proxy if enabled (BrowserWindow won't work well)
 	if (CheckIf.isTwitterUrl(url)) {
-		return nonElectronGetPageTitle(url);
+		return nonElectronGetPageTitle(url, useTwitterProxy);
 	}
 
 	// Try to do a HEAD request to see if the site is reachable and if it's an HTML page
@@ -218,6 +226,6 @@ export default async function getPageTitle(url: string): Promise<string> {
 	if (electronPkg != null) {
 		return electronGetPageTitle(url);
 	} else {
-		return nonElectronGetPageTitle(url);
+		return nonElectronGetPageTitle(url, useTwitterProxy);
 	}
 }

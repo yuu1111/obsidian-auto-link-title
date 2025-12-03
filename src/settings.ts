@@ -24,6 +24,8 @@ export interface AutoLinkTitleSettings {
 	useNewScraper: boolean;
 	linkPreviewApiKey: string;
 	useBetterPasteId: boolean;
+	ignoreCodeBlocks: boolean;
+	useTwitterProxy: boolean;
 }
 
 /**
@@ -47,6 +49,8 @@ export const DEFAULT_SETTINGS: AutoLinkTitleSettings = {
 	useNewScraper: false,
 	linkPreviewApiKey: "",
 	useBetterPasteId: false,
+	ignoreCodeBlocks: true,
+	useTwitterProxy: true,
 };
 
 /**
@@ -161,6 +165,26 @@ export class AutoLinkTitleSettingTab extends PluginSettingTab {
 					} else {
 						this.plugin.settings.linkPreviewApiKey = trimmedValue;
 					}
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(i18n.settings.ignoreCodeBlocks.name)
+			.setDesc(i18n.settings.ignoreCodeBlocks.desc)
+			.addToggle((val) =>
+				val.setValue(this.plugin.settings.ignoreCodeBlocks).onChange(async (value) => {
+					this.plugin.settings.ignoreCodeBlocks = value;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(i18n.settings.useTwitterProxy.name)
+			.setDesc(i18n.settings.useTwitterProxy.desc)
+			.addToggle((val) =>
+				val.setValue(this.plugin.settings.useTwitterProxy).onChange(async (value) => {
+					this.plugin.settings.useTwitterProxy = value;
 					await this.plugin.saveSettings();
 				}),
 			);

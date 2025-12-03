@@ -55,5 +55,13 @@ export default {
 			name: "LinkPreview API Key",
 			desc: "API key for the LinkPreview.net service. Get one at https://my.linkpreview.net/access_keys",
 		},
+		ignoreCodeBlocks: {
+			name: "Ignore Code Blocks",
+			desc: "Don't fetch titles for URLs pasted inside code blocks or inline code (backticks).",
+		},
+		useTwitterProxy: {
+			name: "Use Twitter/X Proxy",
+			desc: "Use fxtwitter.com to fetch titles from Twitter/X URLs. Disable if you don't want proxy conversion.",
+		},
 	},
 };

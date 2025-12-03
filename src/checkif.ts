@@ -78,6 +78,44 @@ export class CheckIf {
 	}
 
 	/**
+	 * Checks if the cursor is inside inline code (backticks) or a code block
+	 * @param editor - Obsidian editor instance
+	 * @returns true if cursor is inside code formatting
+	 */
+	public static isInsideCode(editor: Editor): boolean {
+		const cursor = editor.getCursor();
+		const line = editor.getLine(cursor.line);
+
+		// Check for inline code: count backticks before cursor
+		const textBeforeCursor = line.substring(0, cursor.ch);
+		const backticksBeforeCursor = (textBeforeCursor.match(/`/g) || []).length;
+
+		// If odd number of backticks before cursor, we're inside inline code
+		if (backticksBeforeCursor % 2 === 1) {
+			return true;
+		}
+
+		// Check for code block: look for ``` above without closing ```
+		const content = editor.getValue();
+		const lines = content.split("\n");
+		let inCodeBlock = false;
+
+		for (let i = 0; i < cursor.line; i++) {
+			const trimmed = lines[i].trim();
+			if (trimmed.startsWith("```")) {
+				inCodeBlock = !inCodeBlock;
+			}
+		}
+
+		// Check if current line starts a code block
+		if (lines[cursor.line].trim().startsWith("```")) {
+			return true;
+		}
+
+		return inCodeBlock;
+	}
+
+	/**
 	 * Checks if the URL is a Twitter/X URL
 	 * @param url - URL to check
 	 * @returns true if URL is from twitter.com or x.com
@@ -97,15 +135,26 @@ export class CheckIf {
 	}
 
 	/**
-	 * Converts a Twitter/X URL to fxtwitter.com for scraping
+	 * Converts a Twitter/X URL to proxy URL for scraping
+	 * twitter.com → fxtwitter.com, x.com → fixupx.com
 	 * @param url - Original Twitter/X URL
-	 * @returns fxtwitter.com URL or original URL if not Twitter
+	 * @returns Proxy URL or original URL if not Twitter
 	 */
-	public static toFxTwitterUrl(url: string): string {
+	public static toTwitterProxyUrl(url: string): string {
 		if (!CheckIf.isTwitterUrl(url)) return url;
 		try {
 			const urlObj = new URL(url);
-			urlObj.hostname = "fxtwitter.com";
+			const hostname = urlObj.hostname.toLowerCase();
+
+			// twitter.com → fxtwitter.com
+			if (hostname === "twitter.com" || hostname === "www.twitter.com") {
+				urlObj.hostname = "fxtwitter.com";
+			}
+			// x.com → fixupx.com
+			else if (hostname === "x.com" || hostname === "www.x.com") {
+				urlObj.hostname = "fixupx.com";
+			}
+
 			return urlObj.toString();
 		} catch {
 			return url;

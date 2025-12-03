@@ -48,20 +48,24 @@ export function getUrlFinalSegment(url: string): string {
 }
 
 /**
- * Prepares URL and headers for Twitter/X scraping via fxtwitter.com
+ * Prepares URL and headers for Twitter/X scraping via proxy
  * @param url - Original URL
+ * @param useTwitterProxy - Whether to use Twitter proxy (fxtwitter/fixupx)
  * @returns Object with scrape URL and headers
  */
-export function prepareTwitterScrape(url: string): {
+export function prepareTwitterScrape(
+	url: string,
+	useTwitterProxy: boolean,
+): {
 	scrapeUrl: string;
 	headers: Record<string, string>;
 } {
-	const scrapeUrl = CheckIf.isTwitterUrl(url)
-		? CheckIf.toFxTwitterUrl(url)
-		: url;
+	const isTwitter = CheckIf.isTwitterUrl(url);
+	const scrapeUrl =
+		isTwitter && useTwitterProxy ? CheckIf.toTwitterProxyUrl(url) : url;
 
 	const headers: Record<string, string> = {};
-	if (CheckIf.isTwitterUrl(url)) {
+	if (isTwitter && useTwitterProxy) {
 		headers["User-Agent"] =
 			"Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
 	}

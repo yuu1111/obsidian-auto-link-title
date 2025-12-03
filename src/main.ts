@@ -7,9 +7,10 @@ import { type Editor, Notice, Plugin } from "obsidian";
 import { CheckIf } from "./checkif";
 import { EditorExtensions } from "./editor-enhancements";
 import { i18n } from "./lang/i18n";
-import getElectronPageTitle from "./scraper/electron";
-import getPageTitle from "./scraper/http";
 import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
+import { fetchUrlTitle } from "./title-fetcher";
+import { escapeMarkdown, getUrlFromLink, shortTitle } from "./utils/markdown";
+import { getPasteId } from "./utils/placeholder";
 
 /** Event handler type for paste events */
 type PasteFunction = (this: HTMLElement, ev: ClipboardEvent) => void;
@@ -101,7 +102,7 @@ export default class AutoLinkTitle extends Plugin {
 
 		// If the cursor is on the URL part of a markdown link, fetch title and replace existing link title
 		else if (CheckIf.isLinkedUrl(selectedText)) {
-			const link = this.getUrlFromLink(selectedText);
+			const link = getUrlFromLink(selectedText);
 			this.convertUrlToTitledLink(editor, link);
 		}
 	}
@@ -118,49 +119,55 @@ export default class AutoLinkTitle extends Plugin {
 	}
 
 	/**
+	 * Core handler for processing URLs and converting them to titled links
+	 * Shared logic between paste, drop, and manual paste operations
+	 * @param editor - Obsidian editor instance
+	 * @param text - URL text to process
+	 * @param fallbackToPlainPaste - Whether to paste plain text if URL is invalid
+	 * @returns true if URL was processed, false otherwise
+	 */
+	private async processUrlText(editor: Editor, text: string, fallbackToPlainPaste: boolean): Promise<boolean> {
+		// Skip empty text
+		if (text === null || text === "") return false;
+
+		// If not a URL or is an image URL, skip processing
+		if (!CheckIf.isUrl(text) || CheckIf.isImage(text)) {
+			if (fallbackToPlainPaste) editor.replaceSelection(text);
+			return false;
+		}
+
+		// Only attempt fetch if online
+		if (!navigator.onLine) {
+			if (fallbackToPlainPaste) editor.replaceSelection(text);
+			new Notice(i18n.notices.noInternet);
+			return false;
+		}
+
+		// If pasting into an existing markdown link context, just paste the URL
+		if (CheckIf.isMarkdownLinkAlready(editor) || CheckIf.isAfterQuote(editor)) {
+			editor.replaceSelection(text);
+			return true;
+		}
+
+		// If URL is pasted over selected text and setting is enabled, use selection as title
+		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
+		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
+			editor.replaceSelection(`[${selectedText}](${text})`);
+			return true;
+		}
+
+		// Fetch title and create markdown link
+		this.convertUrlToTitledLink(editor, text);
+		return true;
+	}
+
+	/**
 	 * Manually triggered paste that fetches title for URLs
-	 * Simulates standard paste using editor.replaceSelection since we can't dispatch a paste event
 	 * @param editor - Obsidian editor instance
 	 */
 	async manualPasteUrlWithTitle(editor: Editor): Promise<void> {
 		const clipboardText = await navigator.clipboard.readText();
-
-		// Only attempt fetch if online
-		if (!navigator.onLine) {
-			editor.replaceSelection(clipboardText);
-			new Notice(i18n.notices.noInternet);
-			return;
-		}
-
-		if (clipboardText == null || clipboardText === "") return;
-
-		// If its not a URL, we return false to allow the default paste handler to take care of it.
-		// Similarly, image urls don't have a meaningful <title> attribute so downloading it
-		// to fetch the title is a waste of bandwidth.
-		if (!CheckIf.isUrl(clipboardText) || CheckIf.isImage(clipboardText)) {
-			editor.replaceSelection(clipboardText);
-			return;
-		}
-
-		// If it looks like we're pasting the url into a markdown link already, don't fetch title
-		// as the user has already probably put a meaningful title, also it would lead to the title
-		// being inside the link.
-		if (CheckIf.isMarkdownLinkAlready(editor) || CheckIf.isAfterQuote(editor)) {
-			editor.replaceSelection(clipboardText);
-			return;
-		}
-
-		// If url is pasted over selected text and setting is enabled, no need to fetch title,
-		// just insert a link
-		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
-		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
-			editor.replaceSelection(`[${selectedText}](${clipboardText})`);
-			return;
-		}
-
-		// At this point we're just pasting a link in a normal fashion, fetch its title.
-		this.convertUrlToTitledLink(editor, clipboardText);
-		return;
+		await this.processUrlText(editor, clipboardText, true);
 	}
 
 	/**
@@ -169,21 +176,14 @@ export default class AutoLinkTitle extends Plugin {
 	 * @param editor - Obsidian editor instance
 	 */
 	async pasteUrlWithTitle(clipboard: ClipboardEvent, editor: Editor): Promise<void> {
-		if (!this.settings.enhanceDefaultPaste) {
-			return;
-		}
-
+		if (!this.settings.enhanceDefaultPaste) return;
 		if (clipboard.defaultPrevented) return;
 
 		const clipboardText = clipboard.clipboardData?.getData("text/plain") ?? "";
 		if (clipboardText === null || clipboardText === "") return;
 
-		// If its not a URL, we return false to allow the default paste handler to take care of it.
-		// Similarly, image urls don't have a meaningful <title> attribute so downloading it
-		// to fetch the title is a waste of bandwidth.
-		if (!CheckIf.isUrl(clipboardText) || CheckIf.isImage(clipboardText)) {
-			return;
-		}
+		// Skip non-URLs and image URLs (let default handler process them)
+		if (!CheckIf.isUrl(clipboardText) || CheckIf.isImage(clipboardText)) return;
 
 		// Only attempt fetch if online
 		if (!navigator.onLine) {
@@ -191,29 +191,11 @@ export default class AutoLinkTitle extends Plugin {
 			return;
 		}
 
-		// We've decided to handle the paste, stop propagation to the default handler.
+		// We're handling this paste - prevent default behavior
 		clipboard.stopPropagation();
 		clipboard.preventDefault();
 
-		// If it looks like we're pasting the url into a markdown link already, don't fetch title
-		// as the user has already probably put a meaningful title, also it would lead to the title
-		// being inside the link.
-		if (CheckIf.isMarkdownLinkAlready(editor) || CheckIf.isAfterQuote(editor)) {
-			editor.replaceSelection(clipboardText);
-			return;
-		}
-
-		// If url is pasted over selected text and setting is enabled, no need to fetch title,
-		// just insert a link
-		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
-		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
-			editor.replaceSelection(`[${selectedText}](${clipboardText})`);
-			return;
-		}
-
-		// At this point we're just pasting a link in a normal fashion, fetch its title.
-		this.convertUrlToTitledLink(editor, clipboardText);
-		return;
+		await this.processUrlText(editor, clipboardText, false);
 	}
 
 	/**
@@ -222,50 +204,26 @@ export default class AutoLinkTitle extends Plugin {
 	 * @param editor - Obsidian editor instance
 	 */
 	async dropUrlWithTitle(dropEvent: DragEvent, editor: Editor): Promise<void> {
-		if (!this.settings.enhanceDropEvents) {
-			return;
-		}
-
+		if (!this.settings.enhanceDropEvents) return;
 		if (dropEvent.defaultPrevented) return;
 
 		const dropText = dropEvent.dataTransfer?.getData("text/plain") ?? "";
 		if (dropText === null || dropText === "") return;
 
-		// If its not a URL, we return false to allow the default paste handler to take care of it.
-		// Similarly, image urls don't have a meaningful <title> attribute so downloading it
-		// to fetch the title is a waste of bandwidth.
-		if (!CheckIf.isUrl(dropText) || CheckIf.isImage(dropText)) {
-			return;
-		}
+		// Skip non-URLs and image URLs (let default handler process them)
+		if (!CheckIf.isUrl(dropText) || CheckIf.isImage(dropText)) return;
+
 		// Only attempt fetch if online
 		if (!navigator.onLine) {
 			new Notice(i18n.notices.noInternet);
 			return;
 		}
 
-		// We've decided to handle the paste, stop propagation to the default handler.
+		// We're handling this drop - prevent default behavior
 		dropEvent.stopPropagation();
 		dropEvent.preventDefault();
 
-		// If it looks like we're pasting the url into a markdown link already, don't fetch title
-		// as the user has already probably put a meaningful title, also it would lead to the title
-		// being inside the link.
-		if (CheckIf.isMarkdownLinkAlready(editor) || CheckIf.isAfterQuote(editor)) {
-			editor.replaceSelection(dropText);
-			return;
-		}
-
-		// If url is pasted over selected text and setting is enabled, no need to fetch title,
-		// just insert a link
-		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
-		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
-			editor.replaceSelection(`[${selectedText}](${dropText})`);
-			return;
-		}
-
-		// At this point we're just pasting a link in a normal fashion, fetch its title.
-		this.convertUrlToTitledLink(editor, dropText);
-		return;
+		await this.processUrlText(editor, dropText, false);
 	}
 
 	/**
@@ -295,15 +253,15 @@ export default class AutoLinkTitle extends Plugin {
 		}
 
 		// Generate a unique id for find/replace operations for the title.
-		const pasteId = this.getPasteId();
+		const pasteId = getPasteId(this.settings.useBetterPasteId);
 
 		// Instantly paste so you don't wonder if paste is broken
 		editor.replaceSelection(`[${pasteId}](${url})`);
 
 		// Fetch title from site, replace Fetching Title with actual title
-		const title = await this.fetchUrlTitle(url);
-		const escapedTitle = this.escapeMarkdown(title);
-		const shortenedTitle = this.shortTitle(escapedTitle);
+		const title = await fetchUrlTitle(url, this.settings);
+		const escapedTitle = escapeMarkdown(title);
+		const shortenedTitle = shortTitle(escapedTitle, this.settings.maximumTitleLength);
 
 		const text = editor.getValue();
 
@@ -317,149 +275,6 @@ export default class AutoLinkTitle extends Plugin {
 
 			editor.replaceRange(shortenedTitle, startPos, endPos);
 		}
-	}
-
-	/**
-	 * Escapes markdown special characters in text
-	 * @param text - Text to escape
-	 * @returns Escaped text safe for use in markdown
-	 */
-	escapeMarkdown(text: string): string {
-		var unescaped = text.replace(/\\(\*|_|`|~|\\|\[|\])/g, "$1"); // unescape any "backslashed" character
-		var _escaped = unescaped.replace(/(\*|_|`|<|>|~|\\|\[|\])/g, "\\$1"); // escape *, _, `, ~, \, [, ], <, and >
-		var escaped = unescaped.replace(/(\*|_|`|\||<|>|~|\\|\[|\])/g, "\\$1"); // escape *, _, `, ~, \, |, [, ], <, and >
-		return escaped;
-	}
-
-	/**
-	 * Truncates title to maximum length if configured
-	 * @param title - Title to potentially shorten
-	 * @returns Original or truncated title with ellipsis
-	 */
-	public shortTitle = (title: string): string => {
-		if (this.settings.maximumTitleLength === 0) {
-			return title;
-		}
-		if (title.length < this.settings.maximumTitleLength + 3) {
-			return title;
-		}
-		const shortenedTitle = `${title.slice(0, this.settings.maximumTitleLength)}...`;
-		return shortenedTitle;
-	};
-
-	/**
-	 * Fetches page title using LinkPreview.net API
-	 * @param url - URL to fetch title for
-	 * @returns Page title or empty string on error
-	 */
-	public async fetchUrlTitleViaLinkPreview(url: string): Promise<string> {
-		if (this.settings.linkPreviewApiKey.length !== 32) {
-			console.error("LinkPreview API key is not 32 characters long, please check your settings");
-			return "";
-		}
-
-		try {
-			const apiEndpoint = `https://api.linkpreview.net/?q=${encodeURIComponent(url)}`;
-			const response = await fetch(apiEndpoint, {
-				headers: {
-					"X-Linkpreview-Api-Key": this.settings.linkPreviewApiKey,
-				},
-			});
-			const data = await response.json();
-			return data.title;
-		} catch (error) {
-			console.error(error);
-			return "";
-		}
-	}
-
-	/**
-	 * Fetches page title, trying LinkPreview API first then falling back to scraper
-	 * @param url - URL to fetch title for
-	 * @returns Page title or error message
-	 */
-	async fetchUrlTitle(url: string): Promise<string> {
-		try {
-			let title = "";
-			title = await this.fetchUrlTitleViaLinkPreview(url);
-			console.log(`Title via Link Preview: ${title}`);
-
-			if (title === "") {
-				console.log("Title via Link Preview failed, falling back to scraper");
-				if (this.settings.useNewScraper) {
-					console.log("Using new scraper");
-					title = await getPageTitle(url);
-				} else {
-					console.log("Using old scraper");
-					title = await getElectronPageTitle(url);
-				}
-			}
-
-			console.log(`Title: ${title}`);
-			title = title.replace(/(\r\n|\n|\r)/gm, "").trim() || i18n.notices.titleUnavailable;
-			return title;
-		} catch (error) {
-			console.error(error);
-			return i18n.notices.errorFetching;
-		}
-	}
-
-	/**
-	 * Extracts URL from a markdown link format
-	 * @param link - Markdown link string `[title](url)`
-	 * @returns Extracted URL or empty string
-	 */
-	public getUrlFromLink(link: string): string {
-		const urlRegex = new RegExp(DEFAULT_SETTINGS.linkRegex);
-		const match = urlRegex.exec(link);
-		return match?.[2] ?? "";
-	}
-
-	/**
-	 * Generates a unique placeholder ID for async title replacement
-	 * @returns Unique placeholder string
-	 */
-	private getPasteId(): string {
-		var base = i18n.placeholder.fetching;
-		if (this.settings.useBetterPasteId) {
-			return this.getBetterPasteId(base);
-		} else {
-			return `${base}#${this.createBlockHash()}`;
-		}
-	}
-
-	/**
-	 * Creates a visually identical but unique placeholder using invisible characters
-	 * @param base - Base placeholder text
-	 * @returns Unique placeholder that looks identical to base
-	 */
-	private getBetterPasteId(base: string): string {
-		// After every character, add 0, 1 or 2 invisible characters
-		// so that to the user it looks just like the base string.
-		// The number of combinations is 3^14 = 4782969
-		let result = "";
-		var invisibleCharacter = "\u200B";
-		var maxInvisibleCharacters = 2;
-		for (var i = 0; i < base.length; i++) {
-			var count = Math.floor(Math.random() * (maxInvisibleCharacters + 1));
-			result += base.charAt(i) + invisibleCharacter.repeat(count);
-		}
-		return result;
-	}
-
-	/**
-	 * Creates a random 4-character hash for placeholder uniqueness
-	 * Custom hashid implementation by @shabegom
-	 * @returns Random alphanumeric hash
-	 */
-	private createBlockHash(): string {
-		let result = "";
-		var characters = "abcdefghijklmnopqrstuvwxyz0123456789";
-		var charactersLength = characters.length;
-		for (var i = 0; i < 4; i++) {
-			result += characters.charAt(Math.floor(Math.random() * charactersLength));
-		}
-		return result;
 	}
 
 	onunload() {

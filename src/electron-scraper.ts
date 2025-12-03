@@ -1,16 +1,37 @@
+/**
+ * @fileoverview
+ * Electron-based web scraper for fetching page titles.
+ * Uses Electron's BrowserWindow for JavaScript-rendered pages (desktop only).
+ * Falls back to simple HTTP request when Electron is not available.
+ */
 const electronPkg = require("electron");
 
 import { request } from "obsidian";
 
+/**
+ * Checks if a string is blank (undefined, null, or empty)
+ * @param text - Text to check
+ * @returns true if text is blank
+ */
 function blank(text: string): boolean {
 	return text === undefined || text === null || text === "";
 }
 
+/**
+ * Checks if a string is not blank
+ * @param text - Text to check
+ * @returns true if text is not blank
+ */
 function notBlank(text: string): boolean {
 	return !blank(text);
 }
 
-// async wrapper to load a url and settle on load finish or fail
+/**
+ * Async wrapper to load a URL in a BrowserWindow and wait for completion
+ * @param window - Electron BrowserWindow instance
+ * @param url - URL to load
+ * @returns Promise that resolves on load finish or rejects on failure
+ */
 async function load(window: any, url: string): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		window.webContents.on("did-finish-load", (event: any) => resolve(event));
@@ -19,6 +40,11 @@ async function load(window: any, url: string): Promise<void> {
 	});
 }
 
+/**
+ * Fetches page title using Electron's BrowserWindow (handles JS-rendered pages)
+ * @param url - URL to fetch title from
+ * @returns Page title, URL as fallback, or empty string on error
+ */
 async function electronGetPageTitle(url: string): Promise<string> {
 	const { remote } = electronPkg;
 	const { BrowserWindow } = remote;
@@ -62,6 +88,11 @@ async function electronGetPageTitle(url: string): Promise<string> {
 	}
 }
 
+/**
+ * Fetches page title using simple HTTP request (fallback for non-Electron)
+ * @param url - URL to fetch title from
+ * @returns Page title, URL as fallback, or empty string on error
+ */
 async function nonElectronGetPageTitle(url: string): Promise<string> {
 	try {
 		const html = await request({ url });
@@ -88,6 +119,11 @@ async function nonElectronGetPageTitle(url: string): Promise<string> {
 	}
 }
 
+/**
+ * Extracts the final segment from a URL path (typically the filename)
+ * @param url - URL to parse
+ * @returns Final path segment or "File" as fallback
+ */
 function getUrlFinalSegment(url: string): string {
 	try {
 		const segments = new URL(url).pathname.split("/");
@@ -98,6 +134,11 @@ function getUrlFinalSegment(url: string): string {
 	}
 }
 
+/**
+ * Attempts to determine the file type via HEAD request
+ * @param url - URL to check
+ * @returns File name for non-HTML, "Site Unreachable" on error, or null for HTML pages
+ */
 async function tryGetFileType(url: string) {
 	try {
 		const response = await fetch(url, { method: "HEAD" });
@@ -118,6 +159,11 @@ async function tryGetFileType(url: string) {
 	}
 }
 
+/**
+ * Fetches page title, using Electron if available, otherwise falls back to HTTP
+ * @param url - URL to fetch title from (http/https prefix added if missing)
+ * @returns Page title, file name for non-HTML, or error message
+ */
 export default async function getPageTitle(url: string): Promise<string> {
 	// If we're on Desktop use the Electron scraper
 	if (!(url.startsWith("http") || url.startsWith("https"))) {

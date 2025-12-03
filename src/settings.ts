@@ -1,7 +1,15 @@
+/**
+ * @fileoverview
+ * Plugin settings interface, defaults, and settings tab UI.
+ * Handles all user-configurable options for Auto Link Title.
+ */
 import { type App, Notice, PluginSettingTab, Setting } from "obsidian";
 import { i18n } from "./lang/i18n";
 import type AutoLinkTitle from "./main";
 
+/**
+ * Plugin settings interface defining all configurable options
+ */
 export interface AutoLinkTitleSettings {
 	regex: RegExp;
 	lineRegex: RegExp;
@@ -18,6 +26,9 @@ export interface AutoLinkTitleSettings {
 	useBetterPasteId: boolean;
 }
 
+/**
+ * Default settings values for the plugin
+ */
 export const DEFAULT_SETTINGS: AutoLinkTitleSettings = {
 	regex:
 		/^(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})$/i,
@@ -38,6 +49,9 @@ export const DEFAULT_SETTINGS: AutoLinkTitleSettings = {
 	useBetterPasteId: false,
 };
 
+/**
+ * Settings tab UI for the Auto Link Title plugin
+ */
 export class AutoLinkTitleSettingTab extends PluginSettingTab {
 	plugin: AutoLinkTitle;
 

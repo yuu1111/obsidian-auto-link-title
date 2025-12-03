@@ -1,5 +1,7 @@
 /**
- * @fileoverview English locale (base)
+ * @fileoverview
+ * English locale strings (base/default locale).
+ * All other locales must implement the same structure.
  */
 export default {
 	commands: {

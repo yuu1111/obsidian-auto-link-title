@@ -1,3 +1,8 @@
+/**
+ * @fileoverview
+ * Main plugin file for Auto Link Title.
+ * Automatically fetches and inserts titles when pasting or dropping URLs.
+ */
 import { type Editor, Notice, Plugin } from "obsidian";
 import { CheckIf } from "./checkif";
 import { EditorExtensions } from "./editor-enhancements";
@@ -6,10 +11,16 @@ import { i18n } from "./lang/i18n";
 import getPageTitle from "./scraper";
 import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
 
+/** Event handler type for paste events */
 type PasteFunction = (this: HTMLElement, ev: ClipboardEvent) => void;
 
+/** Event handler type for drop events */
 type DropFunction = (this: HTMLElement, ev: DragEvent) => void;
 
+/**
+ * Main plugin class for Auto Link Title
+ * Handles URL paste/drop events and fetches page titles automatically
+ */
 export default class AutoLinkTitle extends Plugin {
 	settings: AutoLinkTitleSettings;
 	pasteFunction: PasteFunction;
@@ -69,6 +80,10 @@ export default class AutoLinkTitle extends Plugin {
 		this.addSettingTab(new AutoLinkTitleSettingTab(this.app, this));
 	}
 
+	/**
+	 * Adds a title to an existing URL or markdown link at cursor position
+	 * @param editor - Obsidian editor instance
+	 */
 	addTitleToLink(editor: Editor): void {
 		// Only attempt fetch if online
 
@@ -91,6 +106,10 @@ export default class AutoLinkTitle extends Plugin {
 		}
 	}
 
+	/**
+	 * Performs a normal paste without title fetching
+	 * @param editor - Obsidian editor instance
+	 */
 	async normalPaste(editor: Editor): Promise<void> {
 		const clipboardText = await navigator.clipboard.readText();
 		if (clipboardText === null || clipboardText === "") return;
@@ -98,7 +117,11 @@ export default class AutoLinkTitle extends Plugin {
 		editor.replaceSelection(clipboardText);
 	}
 
-	// Simulate standard paste but using editor.replaceSelection with clipboard text since we can't seem to dispatch a paste event.
+	/**
+	 * Manually triggered paste that fetches title for URLs
+	 * Simulates standard paste using editor.replaceSelection since we can't dispatch a paste event
+	 * @param editor - Obsidian editor instance
+	 */
 	async manualPasteUrlWithTitle(editor: Editor): Promise<void> {
 		const clipboardText = await navigator.clipboard.readText();
 
@@ -140,6 +163,11 @@ export default class AutoLinkTitle extends Plugin {
 		return;
 	}
 
+	/**
+	 * Handles paste events to automatically fetch titles for URLs
+	 * @param clipboard - Clipboard event from paste action
+	 * @param editor - Obsidian editor instance
+	 */
 	async pasteUrlWithTitle(clipboard: ClipboardEvent, editor: Editor): Promise<void> {
 		if (!this.settings.enhanceDefaultPaste) {
 			return;
@@ -188,6 +216,11 @@ export default class AutoLinkTitle extends Plugin {
 		return;
 	}
 
+	/**
+	 * Handles drop events to automatically fetch titles for URLs
+	 * @param dropEvent - Drag event from drop action
+	 * @param editor - Obsidian editor instance
+	 */
 	async dropUrlWithTitle(dropEvent: DragEvent, editor: Editor): Promise<void> {
 		if (!this.settings.enhanceDropEvents) {
 			return;
@@ -235,6 +268,11 @@ export default class AutoLinkTitle extends Plugin {
 		return;
 	}
 
+	/**
+	 * Checks if a URL is blacklisted based on user settings
+	 * @param url - URL to check
+	 * @returns true if URL matches any blacklist entry
+	 */
 	async isBlacklisted(url: string): Promise<boolean> {
 		await this.loadSettings();
 		this.blacklist = this.settings.websiteBlacklist
@@ -244,6 +282,11 @@ export default class AutoLinkTitle extends Plugin {
 		return this.blacklist.some((site) => url.includes(site));
 	}
 
+	/**
+	 * Converts a URL to a markdown link with fetched title
+	 * @param editor - Obsidian editor instance
+	 * @param url - URL to convert
+	 */
 	async convertUrlToTitledLink(editor: Editor, url: string): Promise<void> {
 		if (await this.isBlacklisted(url)) {
 			const domain = new URL(url).hostname;
@@ -276,6 +319,11 @@ export default class AutoLinkTitle extends Plugin {
 		}
 	}
 
+	/**
+	 * Escapes markdown special characters in text
+	 * @param text - Text to escape
+	 * @returns Escaped text safe for use in markdown
+	 */
 	escapeMarkdown(text: string): string {
 		var unescaped = text.replace(/\\(\*|_|`|~|\\|\[|\])/g, "$1"); // unescape any "backslashed" character
 		var _escaped = unescaped.replace(/(\*|_|`|<|>|~|\\|\[|\])/g, "\\$1"); // escape *, _, `, ~, \, [, ], <, and >
@@ -283,6 +331,11 @@ export default class AutoLinkTitle extends Plugin {
 		return escaped;
 	}
 
+	/**
+	 * Truncates title to maximum length if configured
+	 * @param title - Title to potentially shorten
+	 * @returns Original or truncated title with ellipsis
+	 */
 	public shortTitle = (title: string): string => {
 		if (this.settings.maximumTitleLength === 0) {
 			return title;
@@ -294,6 +347,11 @@ export default class AutoLinkTitle extends Plugin {
 		return shortenedTitle;
 	};
 
+	/**
+	 * Fetches page title using LinkPreview.net API
+	 * @param url - URL to fetch title for
+	 * @returns Page title or empty string on error
+	 */
 	public async fetchUrlTitleViaLinkPreview(url: string): Promise<string> {
 		if (this.settings.linkPreviewApiKey.length !== 32) {
 			console.error("LinkPreview API key is not 32 characters long, please check your settings");
@@ -315,6 +373,11 @@ export default class AutoLinkTitle extends Plugin {
 		}
 	}
 
+	/**
+	 * Fetches page title, trying LinkPreview API first then falling back to scraper
+	 * @param url - URL to fetch title for
+	 * @returns Page title or error message
+	 */
 	async fetchUrlTitle(url: string): Promise<string> {
 		try {
 			let title = "";
@@ -341,12 +404,21 @@ export default class AutoLinkTitle extends Plugin {
 		}
 	}
 
+	/**
+	 * Extracts URL from a markdown link format
+	 * @param link - Markdown link string `[title](url)`
+	 * @returns Extracted URL or empty string
+	 */
 	public getUrlFromLink(link: string): string {
 		const urlRegex = new RegExp(DEFAULT_SETTINGS.linkRegex);
 		const match = urlRegex.exec(link);
 		return match?.[2] ?? "";
 	}
 
+	/**
+	 * Generates a unique placeholder ID for async title replacement
+	 * @returns Unique placeholder string
+	 */
 	private getPasteId(): string {
 		var base = i18n.placeholder.fetching;
 		if (this.settings.useBetterPasteId) {
@@ -356,6 +428,11 @@ export default class AutoLinkTitle extends Plugin {
 		}
 	}
 
+	/**
+	 * Creates a visually identical but unique placeholder using invisible characters
+	 * @param base - Base placeholder text
+	 * @returns Unique placeholder that looks identical to base
+	 */
 	private getBetterPasteId(base: string): string {
 		// After every character, add 0, 1 or 2 invisible characters
 		// so that to the user it looks just like the base string.
@@ -370,7 +447,11 @@ export default class AutoLinkTitle extends Plugin {
 		return result;
 	}
 
-	// Custom hashid by @shabegom
+	/**
+	 * Creates a random 4-character hash for placeholder uniqueness
+	 * Custom hashid implementation by @shabegom
+	 * @returns Random alphanumeric hash
+	 */
 	private createBlockHash(): string {
 		let result = "";
 		var characters = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -385,10 +466,12 @@ export default class AutoLinkTitle extends Plugin {
 		console.log("unloading obsidian-auto-link-title");
 	}
 
+	/** Loads plugin settings from Obsidian's data store */
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
 
+	/** Saves plugin settings to Obsidian's data store */
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}

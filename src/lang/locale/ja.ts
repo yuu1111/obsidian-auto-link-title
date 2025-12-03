@@ -1,5 +1,7 @@
 /**
- * @fileoverview Japanese locale (日本語)
+ * @fileoverview
+ * Japanese locale strings.
+ * Implements the same structure as the English base locale.
  */
 import type en from "./en";
 

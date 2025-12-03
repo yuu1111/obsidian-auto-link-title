@@ -63,9 +63,6 @@ async function scrape(url: string, useTwitterProxy: boolean): Promise<string> {
  * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title or empty string on error
  */
-export default async function getPageTitle(
-	url: string,
-	useTwitterProxy: boolean,
-): Promise<string> {
+export default async function getPageTitle(url: string, useTwitterProxy: boolean): Promise<string> {
 	return scrape(normalizeUrl(url), useTwitterProxy);
 }

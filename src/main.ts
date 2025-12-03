@@ -126,7 +126,11 @@ export default class AutoLinkTitle extends Plugin {
 	 * @param fallbackToPlainPaste - Whether to paste plain text if URL is invalid
 	 * @returns true if URL was processed, false otherwise
 	 */
-	private async processUrlText(editor: Editor, text: string, fallbackToPlainPaste: boolean): Promise<boolean> {
+	private async processUrlText(
+		editor: Editor,
+		text: string,
+		fallbackToPlainPaste: boolean,
+	): Promise<boolean> {
 		// Skip empty text
 		if (text === null || text === "") return false;
 

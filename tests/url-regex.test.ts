@@ -39,7 +39,7 @@ describe("URL Regex (regex)", () => {
 		});
 	});
 
-	describe("domains with hyphens (issue #154)", () => {
+	describe("domains with hyphens", () => {
 		test("hyphen in subdomain (www-cs-students)", () => {
 			expect(regex.test("http://www-cs-students.stanford.edu/~amitp/")).toBe(true);
 		});

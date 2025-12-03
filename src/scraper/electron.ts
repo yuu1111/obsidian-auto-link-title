@@ -121,10 +121,7 @@ async function electronGetPageTitle(url: string): Promise<string> {
  * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, URL as fallback, or empty string on error
  */
-async function nonElectronGetPageTitle(
-	url: string,
-	useTwitterProxy: boolean,
-): Promise<string> {
+async function nonElectronGetPageTitle(url: string, useTwitterProxy: boolean): Promise<string> {
 	try {
 		const { scrapeUrl, headers } = prepareTwitterScrape(url, useTwitterProxy);
 
@@ -205,10 +202,7 @@ async function tryGetFileType(url: string) {
  * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, file name for non-HTML, or error message
  */
-export default async function getPageTitle(
-	url: string,
-	useTwitterProxy: boolean,
-): Promise<string> {
+export default async function getPageTitle(url: string, useTwitterProxy: boolean): Promise<string> {
 	url = normalizeUrl(url);
 
 	// For Twitter/X URLs, use HTTP request with proxy if enabled (BrowserWindow won't work well)

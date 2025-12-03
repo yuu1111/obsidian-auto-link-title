@@ -76,4 +76,39 @@ export class CheckIf {
 		const urlRegex = new RegExp(DEFAULT_SETTINGS.linkRegex);
 		return urlRegex.test(text);
 	}
+
+	/**
+	 * Checks if the URL is a Twitter/X URL
+	 * @param url - URL to check
+	 * @returns true if URL is from twitter.com or x.com
+	 */
+	public static isTwitterUrl(url: string): boolean {
+		try {
+			const hostname = new URL(url).hostname.toLowerCase();
+			return (
+				hostname === "twitter.com" ||
+				hostname === "www.twitter.com" ||
+				hostname === "x.com" ||
+				hostname === "www.x.com"
+			);
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Converts a Twitter/X URL to fxtwitter.com for scraping
+	 * @param url - Original Twitter/X URL
+	 * @returns fxtwitter.com URL or original URL if not Twitter
+	 */
+	public static toFxTwitterUrl(url: string): string {
+		if (!CheckIf.isTwitterUrl(url)) return url;
+		try {
+			const urlObj = new URL(url);
+			urlObj.hostname = "fxtwitter.com";
+			return urlObj.toString();
+		} catch {
+			return url;
+		}
+	}
 }

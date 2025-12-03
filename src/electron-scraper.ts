@@ -7,6 +7,7 @@
 const electronPkg = require("electron");
 
 import { request } from "obsidian";
+import { CheckIf } from "./checkif";
 
 /**
  * Checks if a string is blank (undefined, null, or empty)
@@ -89,15 +90,41 @@ async function electronGetPageTitle(url: string): Promise<string> {
 }
 
 /**
+ * Extracts og:title meta tag content from a document
+ * @param doc - Parsed HTML document
+ * @returns og:title content or empty string if not found
+ */
+function getOgTitle(doc: Document): string {
+	const ogTitle = doc.querySelector('meta[property="og:title"]');
+	return ogTitle?.getAttribute("content") ?? "";
+}
+
+/**
  * Fetches page title using simple HTTP request (fallback for non-Electron)
  * @param url - URL to fetch title from
  * @returns Page title, URL as fallback, or empty string on error
  */
 async function nonElectronGetPageTitle(url: string): Promise<string> {
 	try {
-		const html = await request({ url });
+		// For Twitter/X URLs, use fxtwitter.com to get proper titles
+		const scrapeUrl = CheckIf.isTwitterUrl(url) ? CheckIf.toFxTwitterUrl(url) : url;
+
+		// Use bot User-Agent for fxtwitter to get OG tags instead of redirect
+		const headers: Record<string, string> = {};
+		if (CheckIf.isTwitterUrl(url)) {
+			headers["User-Agent"] = "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
+		}
+
+		const html = await request({ url: scrapeUrl, headers });
 
 		const doc = new DOMParser().parseFromString(html, "text/html");
+
+		// Try og:title first (works better for Twitter/fxtwitter)
+		const ogTitle = getOgTitle(doc);
+		if (notBlank(ogTitle)) {
+			return ogTitle;
+		}
+
 		const title = doc.querySelectorAll("title")[0];
 
 		if (title == null || blank(title?.innerText ?? "")) {
@@ -168,6 +195,11 @@ export default async function getPageTitle(url: string): Promise<string> {
 	// If we're on Desktop use the Electron scraper
 	if (!(url.startsWith("http") || url.startsWith("https"))) {
 		url = `https://${url}`;
+	}
+
+	// For Twitter/X URLs, always use HTTP request with fxtwitter (BrowserWindow won't work well)
+	if (CheckIf.isTwitterUrl(url)) {
+		return nonElectronGetPageTitle(url);
 	}
 
 	// Try to do a HEAD request to see if the site is reachable and if it's an HTML page

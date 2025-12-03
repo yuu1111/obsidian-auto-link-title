@@ -14,13 +14,28 @@ export interface TitleFetcherSettings {
 }
 
 /**
+ * Checks if a LinkPreview API key is configured and valid
+ * @param apiKey - API key to check
+ * @returns true if API key is valid (32 characters)
+ */
+function isValidApiKey(apiKey: string): boolean {
+	return apiKey.length === 32;
+}
+
+/**
  * Fetches page title using LinkPreview.net API
  * @param url - URL to fetch title for
  * @param apiKey - LinkPreview API key (must be 32 characters)
- * @returns Page title or empty string on error
+ * @returns Page title or empty string if not configured/error
  */
 export async function fetchUrlTitleViaLinkPreview(url: string, apiKey: string): Promise<string> {
-	if (apiKey.length !== 32) {
+	// Skip if no API key configured
+	if (!apiKey || apiKey.length === 0) {
+		return "";
+	}
+
+	// Warn if API key is set but invalid
+	if (!isValidApiKey(apiKey)) {
 		console.error("LinkPreview API key is not 32 characters long, please check your settings");
 		return "";
 	}
@@ -49,21 +64,22 @@ export async function fetchUrlTitleViaLinkPreview(url: string, apiKey: string): 
 export async function fetchUrlTitle(url: string, settings: TitleFetcherSettings): Promise<string> {
 	try {
 		let title = "";
-		title = await fetchUrlTitleViaLinkPreview(url, settings.linkPreviewApiKey);
-		console.log(`Title via Link Preview: ${title}`);
 
-		if (title === "") {
-			console.log("Title via Link Preview failed, falling back to scraper");
-			if (settings.useNewScraper) {
-				console.log("Using new scraper");
-				title = await getPageTitle(url);
-			} else {
-				console.log("Using old scraper");
-				title = await getElectronPageTitle(url);
+		// Try LinkPreview API if configured
+		if (settings.linkPreviewApiKey) {
+			title = await fetchUrlTitleViaLinkPreview(url, settings.linkPreviewApiKey);
+			if (title) {
+				return title.replace(/(\r\n|\n|\r)/gm, "").trim();
 			}
 		}
 
-		console.log(`Title: ${title}`);
+		// Fall back to scraper
+		if (settings.useNewScraper) {
+			title = await getPageTitle(url);
+		} else {
+			title = await getElectronPageTitle(url);
+		}
+
 		title = title.replace(/(\r\n|\n|\r)/gm, "").trim() || i18n.notices.titleUnavailable;
 		return title;
 	} catch (error) {

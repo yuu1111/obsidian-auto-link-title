@@ -7,6 +7,19 @@ import type { Editor } from "obsidian";
 import { DEFAULT_SETTINGS } from "./settings";
 
 /**
+ * Strips angle brackets from autolink format URLs
+ * @param text - Text that may be in `<URL>` format
+ * @returns URL without angle brackets, or original text if not autolink
+ */
+export function stripAngleBrackets(text: string): string {
+	const trimmed = text.trim();
+	if (trimmed.startsWith("<") && trimmed.endsWith(">")) {
+		return trimmed.slice(1, -1);
+	}
+	return text;
+}
+
+/**
  * Utility class for URL and link state checking
  */
 export class CheckIf {

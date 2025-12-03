@@ -4,7 +4,7 @@
  * Automatically fetches and inserts titles when pasting or dropping URLs.
  */
 import { type Editor, Notice, Plugin } from "obsidian";
-import { CheckIf } from "./checkif";
+import { CheckIf, stripAngleBrackets } from "./checkif";
 import { EditorExtensions } from "./editor-enhancements";
 import { i18n } from "./lang/i18n";
 import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
@@ -130,8 +130,11 @@ export default class AutoLinkTitle extends Plugin {
 		// Skip empty text
 		if (text === null || text === "") return false;
 
+		// Strip angle brackets from autolink format <URL>
+		const url = stripAngleBrackets(text);
+
 		// If not a URL or is an image URL, skip processing
-		if (!CheckIf.isUrl(text) || CheckIf.isImage(text)) {
+		if (!CheckIf.isUrl(url) || CheckIf.isImage(url)) {
 			if (fallbackToPlainPaste) editor.replaceSelection(text);
 			return false;
 		}
@@ -145,25 +148,25 @@ export default class AutoLinkTitle extends Plugin {
 
 		// If pasting into an existing markdown link context, just paste the URL
 		if (CheckIf.isMarkdownLinkAlready(editor) || CheckIf.isAfterQuote(editor)) {
-			editor.replaceSelection(text);
+			editor.replaceSelection(url);
 			return true;
 		}
 
 		// If inside code block and setting is enabled, just paste the URL
 		if (this.settings.ignoreCodeBlocks && CheckIf.isInsideCode(editor)) {
-			editor.replaceSelection(text);
+			editor.replaceSelection(url);
 			return true;
 		}
 
 		// If URL is pasted over selected text and setting is enabled, use selection as title
 		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
 		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
-			editor.replaceSelection(`[${selectedText}](${text})`);
+			editor.replaceSelection(`[${selectedText}](${url})`);
 			return true;
 		}
 
 		// Fetch title and create markdown link
-		this.convertUrlToTitledLink(editor, text);
+		this.convertUrlToTitledLink(editor, url);
 		return true;
 	}
 
@@ -188,8 +191,11 @@ export default class AutoLinkTitle extends Plugin {
 		const clipboardText = clipboard.clipboardData?.getData("text/plain") ?? "";
 		if (clipboardText === null || clipboardText === "") return;
 
+		// Strip angle brackets from autolink format <URL>
+		const url = stripAngleBrackets(clipboardText);
+
 		// Skip non-URLs and image URLs (let default handler process them)
-		if (!CheckIf.isUrl(clipboardText) || CheckIf.isImage(clipboardText)) return;
+		if (!CheckIf.isUrl(url) || CheckIf.isImage(url)) return;
 
 		// Only attempt fetch if online
 		if (!navigator.onLine) {
@@ -201,7 +207,7 @@ export default class AutoLinkTitle extends Plugin {
 		clipboard.stopPropagation();
 		clipboard.preventDefault();
 
-		await this.processUrlText(editor, clipboardText, false);
+		await this.processUrlText(editor, url, false);
 	}
 
 	/**
@@ -216,8 +222,11 @@ export default class AutoLinkTitle extends Plugin {
 		const dropText = dropEvent.dataTransfer?.getData("text/plain") ?? "";
 		if (dropText === null || dropText === "") return;
 
+		// Strip angle brackets from autolink format <URL>
+		const url = stripAngleBrackets(dropText);
+
 		// Skip non-URLs and image URLs (let default handler process them)
-		if (!CheckIf.isUrl(dropText) || CheckIf.isImage(dropText)) return;
+		if (!CheckIf.isUrl(url) || CheckIf.isImage(url)) return;
 
 		// Only attempt fetch if online
 		if (!navigator.onLine) {
@@ -229,7 +238,7 @@ export default class AutoLinkTitle extends Plugin {
 		dropEvent.stopPropagation();
 		dropEvent.preventDefault();
 
-		await this.processUrlText(editor, dropText, false);
+		await this.processUrlText(editor, url, false);
 	}
 
 	/**

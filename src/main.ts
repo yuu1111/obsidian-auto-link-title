@@ -6,9 +6,9 @@
 import { type Editor, Notice, Plugin } from "obsidian";
 import { CheckIf } from "./checkif";
 import { EditorExtensions } from "./editor-enhancements";
-import getElectronPageTitle from "./electron-scraper";
 import { i18n } from "./lang/i18n";
-import getPageTitle from "./scraper";
+import getElectronPageTitle from "./scraper/electron";
+import getPageTitle from "./scraper/http";
 import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
 
 /** Event handler type for paste events */

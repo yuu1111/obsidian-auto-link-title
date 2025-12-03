@@ -4,7 +4,6 @@
 
 # npm
 node_modules
-package-lock.json
 
 # build
 main.js
@@ -12,4 +11,3 @@ main.js
 .DS_Store
 
 data.json
-/bun.lockb

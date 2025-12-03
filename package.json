@@ -16,7 +16,7 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
-    "@types/node": "^22.10.0",
+    "@types/node": "^24.10.1",
     "obsidian": "^1.10.3",
     "typescript": "^5.9.3"
   }

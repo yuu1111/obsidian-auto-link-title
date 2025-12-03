@@ -162,6 +162,12 @@ export default class AutoLinkTitle extends Plugin {
 			return true;
 		}
 
+		// If URL is blacklisted, just paste the URL without wrapping
+		if (await this.isBlacklisted(url)) {
+			editor.replaceSelection(url);
+			return true;
+		}
+
 		// If URL is pasted over selected text and setting is enabled, use selection as title
 		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
 		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
@@ -265,9 +271,9 @@ export default class AutoLinkTitle extends Plugin {
 	 * @param url - URL to convert
 	 */
 	async convertUrlToTitledLink(editor: Editor, url: string): Promise<void> {
+		// If URL is blacklisted, just paste the URL without wrapping
 		if (await this.isBlacklisted(url)) {
-			const domain = new URL(url).hostname;
-			editor.replaceSelection(`[${domain}](${url})`);
+			editor.replaceSelection(url);
 			return;
 		}
 

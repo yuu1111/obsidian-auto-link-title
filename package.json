@@ -17,6 +17,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
     "@types/node": "^24.10.1",
+    "linkedom": "^0.18.12",
     "obsidian": "^1.10.3",
     "typescript": "^5.9.3"
   }

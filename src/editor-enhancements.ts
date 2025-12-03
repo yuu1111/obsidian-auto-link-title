@@ -1,5 +1,5 @@
 import type { Editor, EditorPosition } from "obsidian";
-import { DEFAULT_SETTINGS } from "settings";
+import { DEFAULT_SETTINGS } from "./settings";
 
 interface WordBoundaries {
 	start: { line: number; ch: number };
@@ -16,6 +16,7 @@ export class EditorExtensions {
 	}
 
 	private static cursorWithinBoundaries(cursor: EditorPosition, match: RegExpMatchArray): boolean {
+		if (match.index === undefined) return false;
 		const startIndex = match.index;
 		const endIndex = match.index + match[0].length;
 
@@ -34,7 +35,7 @@ export class EditorExtensions {
 		const linksInLine = lineText.matchAll(DEFAULT_SETTINGS.linkLineRegex);
 
 		for (const match of linksInLine) {
-			if (EditorExtensions.cursorWithinBoundaries(cursor, match)) {
+			if (EditorExtensions.cursorWithinBoundaries(cursor, match) && match.index !== undefined) {
 				return {
 					start: { line: cursor.line, ch: match.index },
 					end: { line: cursor.line, ch: match.index + match[0].length },
@@ -46,7 +47,7 @@ export class EditorExtensions {
 		const urlsInLine = lineText.matchAll(DEFAULT_SETTINGS.lineRegex);
 
 		for (const match of urlsInLine) {
-			if (EditorExtensions.cursorWithinBoundaries(cursor, match)) {
+			if (EditorExtensions.cursorWithinBoundaries(cursor, match) && match.index !== undefined) {
 				return {
 					start: { line: cursor.line, ch: match.index },
 					end: { line: cursor.line, ch: match.index + match[0].length },

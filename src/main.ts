@@ -1,9 +1,9 @@
-import { CheckIf } from "checkif";
-import { EditorExtensions } from "editor-enhancements";
-import getElectronPageTitle from "electron-scraper";
 import { type Editor, Notice, Plugin } from "obsidian";
-import getPageTitle from "scraper";
+import { CheckIf } from "./checkif";
+import { EditorExtensions } from "./editor-enhancements";
+import getElectronPageTitle from "./electron-scraper";
 import { i18n } from "./lang/i18n";
+import getPageTitle from "./scraper";
 import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
 
 type PasteFunction = (this: HTMLElement, ev: ClipboardEvent) => void;
@@ -147,7 +147,7 @@ export default class AutoLinkTitle extends Plugin {
 
 		if (clipboard.defaultPrevented) return;
 
-		const clipboardText = clipboard.clipboardData.getData("text/plain");
+		const clipboardText = clipboard.clipboardData?.getData("text/plain") ?? "";
 		if (clipboardText === null || clipboardText === "") return;
 
 		// If its not a URL, we return false to allow the default paste handler to take care of it.
@@ -195,7 +195,7 @@ export default class AutoLinkTitle extends Plugin {
 
 		if (dropEvent.defaultPrevented) return;
 
-		const dropText = dropEvent.dataTransfer.getData("text/plain");
+		const dropText = dropEvent.dataTransfer?.getData("text/plain") ?? "";
 		if (dropText === null || dropText === "") return;
 
 		// If its not a URL, we return false to allow the default paste handler to take care of it.
@@ -343,7 +343,8 @@ export default class AutoLinkTitle extends Plugin {
 
 	public getUrlFromLink(link: string): string {
 		const urlRegex = new RegExp(DEFAULT_SETTINGS.linkRegex);
-		return urlRegex.exec(link)[2];
+		const match = urlRegex.exec(link);
+		return match?.[2] ?? "";
 	}
 
 	private getPasteId(): string {

@@ -1,6 +1,6 @@
-import type AutoLinkTitle from "main";
 import { type App, Notice, PluginSettingTab, Setting } from "obsidian";
 import { i18n } from "./lang/i18n";
+import type AutoLinkTitle from "./main";
 
 export interface AutoLinkTitleSettings {
 	regex: RegExp;

@@ -11,16 +11,17 @@ function notBlank(text: string): boolean {
 async function scrape(url: string): Promise<string> {
 	try {
 		const response = await requestUrl(url);
-		if (!response.headers["content-type"].includes("text/html")) return getUrlFinalSegment(url);
+		const contentType = response.headers["content-type"];
+		if (!contentType?.includes("text/html")) return getUrlFinalSegment(url);
 		const html = response.text;
 
 		const doc = new DOMParser().parseFromString(html, "text/html");
 		const title = doc.querySelector("title");
 
-		if (blank(title?.innerText)) {
+		if (blank(title?.innerText ?? "")) {
 			// If site is javascript based and has a no-title attribute when unloaded, use it.
-			var noTitle = title?.getAttr("no-title");
-			if (notBlank(noTitle)) {
+			const noTitle = title?.getAttr("no-title");
+			if (noTitle && notBlank(noTitle)) {
 				return noTitle;
 			}
 
@@ -28,7 +29,7 @@ async function scrape(url: string): Promise<string> {
 			return url;
 		}
 
-		return title.innerText;
+		return title?.innerText ?? url;
 	} catch (ex) {
 		console.error(ex);
 		return "";
@@ -39,7 +40,7 @@ function getUrlFinalSegment(url: string): string {
 	try {
 		const segments = new URL(url).pathname.split("/");
 		const last = segments.pop() || segments.pop(); // Handle potential trailing slash
-		return last;
+		return last ?? "File";
 	} catch (_) {
 		return "File";
 	}

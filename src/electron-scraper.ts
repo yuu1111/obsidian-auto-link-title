@@ -69,10 +69,10 @@ async function nonElectronGetPageTitle(url: string): Promise<string> {
 		const doc = new DOMParser().parseFromString(html, "text/html");
 		const title = doc.querySelectorAll("title")[0];
 
-		if (title == null || blank(title?.innerText)) {
+		if (title == null || blank(title?.innerText ?? "")) {
 			// If site is javascript based and has a no-title attribute when unloaded, use it.
-			var noTitle = title?.getAttr("no-title");
-			if (notBlank(noTitle)) {
+			const noTitle = title?.getAttr("no-title");
+			if (noTitle && notBlank(noTitle)) {
 				return noTitle;
 			}
 
@@ -92,7 +92,7 @@ function getUrlFinalSegment(url: string): string {
 	try {
 		const segments = new URL(url).pathname.split("/");
 		const last = segments.pop() || segments.pop(); // Handle potential trailing slash
-		return last;
+		return last ?? "File";
 	} catch (_) {
 		return "File";
 	}
@@ -109,7 +109,7 @@ async function tryGetFileType(url: string) {
 
 		// Ensure site is an actual HTML page and not a pdf or 3 gigabyte video file.
 		const contentType = response.headers.get("content-type");
-		if (!contentType.includes("text/html")) {
+		if (!contentType?.includes("text/html")) {
 			return getUrlFinalSegment(url);
 		}
 		return null;

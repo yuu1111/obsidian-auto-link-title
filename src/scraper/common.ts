@@ -66,8 +66,8 @@ export function prepareTwitterScrape(
 
 	const headers: Record<string, string> = {};
 	if (isTwitter && useTwitterProxy) {
-		headers["User-Agent"] =
-			"Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)";
+		// Use dedicated User-Agent for link preview (matches FxEmbed bot detection patterns)
+		headers["User-Agent"] = "ObsidianLinkPreview/1.0 (+https://obsidian.md)";
 	}
 
 	return { scrapeUrl, headers };

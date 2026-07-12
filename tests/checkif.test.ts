@@ -4,7 +4,7 @@
  * Run with: bun test
  */
 import { describe, expect, test } from "bun:test";
-import { CheckIf, stripAngleBrackets } from "../src/checkif";
+import { CheckIf, getUrlOnlyPasteParts, stripAngleBrackets } from "../src/checkif";
 
 describe("stripAngleBrackets", () => {
 	test("strips angle brackets from autolink URL", () => {
@@ -55,6 +55,34 @@ describe("CheckIf.isUrl", () => {
 
 	test("returns false for URL without protocol", () => {
 		expect(CheckIf.isUrl("example.com")).toBe(false);
+	});
+});
+
+describe("getUrlOnlyPasteParts", () => {
+	test("splits multiple URLs while preserving whitespace", () => {
+		expect(getUrlOnlyPasteParts("https://example.com\nhttps://example.org")).toEqual([
+			{ type: "url", text: "https://example.com", url: "https://example.com" },
+			{ type: "text", text: "\n" },
+			{ type: "url", text: "https://example.org", url: "https://example.org" },
+		]);
+	});
+
+	test("supports angle-bracket autolinks", () => {
+		expect(getUrlOnlyPasteParts("<https://example.com>\n<https://example.org>")).toEqual([
+			{ type: "url", text: "<https://example.com>", url: "https://example.com" },
+			{ type: "text", text: "\n" },
+			{ type: "url", text: "<https://example.org>", url: "https://example.org" },
+		]);
+	});
+
+	test("returns parts for a single URL", () => {
+		expect(getUrlOnlyPasteParts("https://example.com")).toEqual([
+			{ type: "url", text: "https://example.com", url: "https://example.com" },
+		]);
+	});
+
+	test("returns null when non-URL text is present", () => {
+		expect(getUrlOnlyPasteParts("See https://example.com")).toBe(null);
 	});
 });
 

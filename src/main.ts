@@ -4,7 +4,12 @@
  * Automatically fetches and inserts titles when pasting or dropping URLs.
  */
 import { type Editor, Notice, Plugin } from "obsidian";
-import { CheckIf, stripAngleBrackets } from "./checkif";
+import {
+	CheckIf,
+	getUrlOnlyPasteParts,
+	stripAngleBrackets,
+	type UrlOnlyPastePart,
+} from "./checkif";
 import { EditorExtensions } from "./editor-enhancements";
 import { i18n } from "./lang/i18n";
 import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
@@ -181,11 +186,67 @@ export default class AutoLinkTitle extends Plugin {
 	}
 
 	/**
+	 * Converts pasted text made up of multiple URLs while preserving whitespace.
+	 * @param editor - Obsidian editor instance
+	 * @param parts - Parsed URL and whitespace parts
+	 * @param fallbackToPlainPaste - Whether to paste plain text if processing is skipped
+	 * @returns true if paste was handled, false otherwise
+	 */
+	private async processUrlParts(
+		editor: Editor,
+		parts: UrlOnlyPastePart[],
+		fallbackToPlainPaste: boolean,
+	): Promise<boolean> {
+		const urls = parts.filter((part) => part.type === "url");
+		if (urls.length <= 1) return false;
+
+		const plainText = parts.map((part) => (part.type === "url" ? part.url : part.text)).join("");
+
+		if (!navigator.onLine) {
+			if (fallbackToPlainPaste) editor.replaceSelection(plainText);
+			new Notice(i18n.notices.noInternet);
+			return fallbackToPlainPaste;
+		}
+
+		if (
+			CheckIf.isMarkdownLinkAlready(editor) ||
+			CheckIf.isAfterQuote(editor) ||
+			(this.settings.ignoreCodeBlocks && CheckIf.isInsideCode(editor))
+		) {
+			editor.replaceSelection(plainText);
+			return true;
+		}
+
+		const titleFetches: Array<{ url: string; pasteId: string }> = [];
+		const pasteTextParts = await Promise.all(
+			parts.map(async (part) => {
+				if (part.type === "text") return part.text;
+				if (CheckIf.isImage(part.url) || (await this.isBlacklisted(part.url))) return part.url;
+
+				const pasteId = getPasteId(this.settings.useBetterPasteId);
+				titleFetches.push({ url: part.url, pasteId });
+				return `[${pasteId}](${part.url})`;
+			}),
+		);
+
+		editor.replaceSelection(pasteTextParts.join(""));
+		await Promise.all(
+			titleFetches.map(({ url, pasteId }) =>
+				this.replacePasteIdWithFetchedTitle(editor, url, pasteId),
+			),
+		);
+		return true;
+	}
+
+	/**
 	 * Manually triggered paste that fetches title for URLs
 	 * @param editor - Obsidian editor instance
 	 */
 	async manualPasteUrlWithTitle(editor: Editor): Promise<void> {
 		const clipboardText = await navigator.clipboard.readText();
+		const urlParts = getUrlOnlyPasteParts(clipboardText);
+		if (urlParts !== null && (await this.processUrlParts(editor, urlParts, true))) return;
+
 		await this.processUrlText(editor, clipboardText, true);
 	}
 
@@ -200,6 +261,20 @@ export default class AutoLinkTitle extends Plugin {
 
 		const clipboardText = clipboard.clipboardData?.getData("text/plain") ?? "";
 		if (clipboardText === null || clipboardText === "") return;
+
+		const urlParts = getUrlOnlyPasteParts(clipboardText);
+		if (urlParts !== null && urlParts.filter((part) => part.type === "url").length > 1) {
+			if (!navigator.onLine) {
+				new Notice(i18n.notices.noInternet);
+				return;
+			}
+
+			clipboard.stopPropagation();
+			clipboard.preventDefault();
+
+			await this.processUrlParts(editor, urlParts, false);
+			return;
+		}
 
 		// Strip angle brackets from autolink format <URL>
 		const url = stripAngleBrackets(clipboardText);
@@ -283,6 +358,20 @@ export default class AutoLinkTitle extends Plugin {
 		// Instantly paste so you don't wonder if paste is broken
 		editor.replaceSelection(`[${pasteId}](${url})`);
 
+		await this.replacePasteIdWithFetchedTitle(editor, url, pasteId);
+	}
+
+	/**
+	 * Fetches a title and replaces the matching placeholder in the editor.
+	 * @param editor - Obsidian editor instance
+	 * @param url - URL to fetch
+	 * @param pasteId - Unique placeholder to replace
+	 */
+	private async replacePasteIdWithFetchedTitle(
+		editor: Editor,
+		url: string,
+		pasteId: string,
+	): Promise<void> {
 		// Fetch title from site, replace Fetching Title with actual title
 		const title = await fetchUrlTitle(url, this.settings);
 		const escapedTitle = escapeMarkdown(title);

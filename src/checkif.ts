@@ -19,6 +19,40 @@ export function stripAngleBrackets(text: string): string {
 	return text;
 }
 
+export type UrlOnlyPastePart =
+	| { type: "text"; text: string }
+	| { type: "url"; text: string; url: string };
+
+/**
+ * Splits pasted text that consists only of URLs and whitespace.
+ * @param text - Clipboard or dropped text
+ * @returns URL/text parts, or null when non-URL text is present
+ */
+export function getUrlOnlyPasteParts(text: string): UrlOnlyPastePart[] | null {
+	if (text === "") return null;
+
+	const parts = text.split(/(\s+)/);
+	const result: UrlOnlyPastePart[] = [];
+	let urlCount = 0;
+
+	for (const part of parts) {
+		if (part === "") continue;
+
+		if (/^\s+$/.test(part)) {
+			result.push({ type: "text", text: part });
+			continue;
+		}
+
+		const url = stripAngleBrackets(part);
+		if (!CheckIf.isUrl(url)) return null;
+
+		result.push({ type: "url", text: part, url });
+		urlCount++;
+	}
+
+	return urlCount > 0 ? result : null;
+}
+
 /**
  * Utility class for URL and link state checking
  */

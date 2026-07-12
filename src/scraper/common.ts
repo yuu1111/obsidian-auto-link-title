@@ -61,7 +61,8 @@ export function prepareTwitterScrape(
 	headers: Record<string, string>;
 } {
 	const isTwitter = CheckIf.isTwitterUrl(url);
-	const scrapeUrl = isTwitter && useTwitterProxy ? CheckIf.toTwitterProxyUrl(url) : url;
+	const scrapeUrl =
+		isTwitter && useTwitterProxy ? CheckIf.toTwitterProxyUrl(url) : url;
 
 	const headers: Record<string, string> = {};
 	if (isTwitter && useTwitterProxy) {

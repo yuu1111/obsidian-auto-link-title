@@ -12,7 +12,11 @@ import {
 } from "./checkif";
 import { EditorExtensions } from "./editor-enhancements";
 import { i18n } from "./lang/i18n";
-import { type AutoLinkTitleSettings, AutoLinkTitleSettingTab, DEFAULT_SETTINGS } from "./settings";
+import {
+	type AutoLinkTitleSettings,
+	AutoLinkTitleSettingTab,
+	DEFAULT_SETTINGS,
+} from "./settings";
 import { fetchUrlTitle } from "./title-fetcher";
 import { escapeMarkdown, getUrlFromLink, shortTitle } from "./utils/markdown";
 import { getPasteId } from "./utils/placeholder";
@@ -67,7 +71,9 @@ export default class AutoLinkTitle extends Plugin {
 			],
 		});
 
-		this.registerEvent(this.app.workspace.on("editor-paste", this.pasteFunction));
+		this.registerEvent(
+			this.app.workspace.on("editor-paste", this.pasteFunction),
+		);
 
 		this.registerEvent(this.app.workspace.on("editor-drop", this.dropFunction));
 
@@ -93,7 +99,9 @@ export default class AutoLinkTitle extends Plugin {
 	addTitleToLink(editor: Editor): void {
 		// Only attempt fetch if online
 
-		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
+		const selectedText = (
+			EditorExtensions.getSelectedText(editor) || ""
+		).trim();
 
 		// If the cursor is on a raw html link, convert to a markdown link and fetch title
 		if (CheckIf.isUrl(selectedText)) {
@@ -174,7 +182,9 @@ export default class AutoLinkTitle extends Plugin {
 		}
 
 		// If URL is pasted over selected text and setting is enabled, use selection as title
-		const selectedText = (EditorExtensions.getSelectedText(editor) || "").trim();
+		const selectedText = (
+			EditorExtensions.getSelectedText(editor) || ""
+		).trim();
 		if (selectedText && this.settings.shouldPreserveSelectionAsTitle) {
 			editor.replaceSelection(`[${selectedText}](${url})`);
 			return true;
@@ -200,7 +210,9 @@ export default class AutoLinkTitle extends Plugin {
 		const urls = parts.filter((part) => part.type === "url");
 		if (urls.length <= 1) return false;
 
-		const plainText = parts.map((part) => (part.type === "url" ? part.url : part.text)).join("");
+		const plainText = parts
+			.map((part) => (part.type === "url" ? part.url : part.text))
+			.join("");
 
 		if (!navigator.onLine) {
 			if (fallbackToPlainPaste) editor.replaceSelection(plainText);
@@ -221,7 +233,8 @@ export default class AutoLinkTitle extends Plugin {
 		const pasteTextParts = await Promise.all(
 			parts.map(async (part) => {
 				if (part.type === "text") return part.text;
-				if (CheckIf.isImage(part.url) || (await this.isBlacklisted(part.url))) return part.url;
+				if (CheckIf.isImage(part.url) || (await this.isBlacklisted(part.url)))
+					return part.url;
 
 				const pasteId = getPasteId(this.settings.useBetterPasteId);
 				titleFetches.push({ url: part.url, pasteId });
@@ -245,7 +258,11 @@ export default class AutoLinkTitle extends Plugin {
 	async manualPasteUrlWithTitle(editor: Editor): Promise<void> {
 		const clipboardText = await navigator.clipboard.readText();
 		const urlParts = getUrlOnlyPasteParts(clipboardText);
-		if (urlParts !== null && (await this.processUrlParts(editor, urlParts, true))) return;
+		if (
+			urlParts !== null &&
+			(await this.processUrlParts(editor, urlParts, true))
+		)
+			return;
 
 		await this.processUrlText(editor, clipboardText, true);
 	}
@@ -255,7 +272,10 @@ export default class AutoLinkTitle extends Plugin {
 	 * @param clipboard - Clipboard event from paste action
 	 * @param editor - Obsidian editor instance
 	 */
-	async pasteUrlWithTitle(clipboard: ClipboardEvent, editor: Editor): Promise<void> {
+	async pasteUrlWithTitle(
+		clipboard: ClipboardEvent,
+		editor: Editor,
+	): Promise<void> {
 		if (!this.settings.enhanceDefaultPaste) return;
 		if (clipboard.defaultPrevented) return;
 
@@ -263,7 +283,10 @@ export default class AutoLinkTitle extends Plugin {
 		if (clipboardText === null || clipboardText === "") return;
 
 		const urlParts = getUrlOnlyPasteParts(clipboardText);
-		if (urlParts !== null && urlParts.filter((part) => part.type === "url").length > 1) {
+		if (
+			urlParts !== null &&
+			urlParts.filter((part) => part.type === "url").length > 1
+		) {
 			if (!navigator.onLine) {
 				new Notice(i18n.notices.noInternet);
 				return;
@@ -375,13 +398,18 @@ export default class AutoLinkTitle extends Plugin {
 		// Fetch title from site, replace Fetching Title with actual title
 		const title = await fetchUrlTitle(url, this.settings);
 		const escapedTitle = escapeMarkdown(title);
-		const shortenedTitle = shortTitle(escapedTitle, this.settings.maximumTitleLength);
+		const shortenedTitle = shortTitle(
+			escapedTitle,
+			this.settings.maximumTitleLength,
+		);
 
 		const text = editor.getValue();
 
 		const start = text.indexOf(pasteId);
 		if (start < 0) {
-			console.log(`Unable to find text "${pasteId}" in current editor, bailing out; link ${url}`);
+			console.log(
+				`Unable to find text "${pasteId}" in current editor, bailing out; link ${url}`,
+			);
 		} else {
 			const end = start + pasteId.length;
 			const startPos = EditorExtensions.getEditorPositionFromIndex(text, start);

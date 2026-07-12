@@ -33,8 +33,10 @@ export interface AutoLinkTitleSettings {
  */
 export const DEFAULT_SETTINGS: AutoLinkTitleSettings = {
 	// URL regex that supports hyphens in domain names (e.g., www-cs-students.stanford.edu)
-	regex: /^https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(?:\/[^\s]*)?$/i,
-	lineRegex: /https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(?:\/[^\s]*)?/gi,
+	regex:
+		/^https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(?:\/[^\s]*)?$/i,
+	lineRegex:
+		/https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(?:\/[^\s]*)?/gi,
 	linkRegex:
 		/^\[([^[\]]*)\]\((https?:\/\/[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(?:\/[^\s]*)?)\)$/i,
 	linkLineRegex:
@@ -72,22 +74,26 @@ export class AutoLinkTitleSettingTab extends PluginSettingTab {
 			.setName(i18n.settings.enhancePaste.name)
 			.setDesc(i18n.settings.enhancePaste.desc)
 			.addToggle((val) =>
-				val.setValue(this.plugin.settings.enhanceDefaultPaste).onChange(async (value) => {
-					console.log(value);
-					this.plugin.settings.enhanceDefaultPaste = value;
-					await this.plugin.saveSettings();
-				}),
+				val
+					.setValue(this.plugin.settings.enhanceDefaultPaste)
+					.onChange(async (value) => {
+						console.log(value);
+						this.plugin.settings.enhanceDefaultPaste = value;
+						await this.plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)
 			.setName(i18n.settings.enhanceDrop.name)
 			.setDesc(i18n.settings.enhanceDrop.desc)
 			.addToggle((val) =>
-				val.setValue(this.plugin.settings.enhanceDropEvents).onChange(async (value) => {
-					console.log(value);
-					this.plugin.settings.enhanceDropEvents = value;
-					await this.plugin.saveSettings();
-				}),
+				val
+					.setValue(this.plugin.settings.enhanceDropEvents)
+					.onChange(async (value) => {
+						console.log(value);
+						this.plugin.settings.enhanceDropEvents = value;
+						await this.plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)
@@ -134,58 +140,68 @@ export class AutoLinkTitleSettingTab extends PluginSettingTab {
 			.setName(i18n.settings.newScraper.name)
 			.setDesc(i18n.settings.newScraper.desc)
 			.addToggle((val) =>
-				val.setValue(this.plugin.settings.useNewScraper).onChange(async (value) => {
-					console.log(value);
-					this.plugin.settings.useNewScraper = value;
-					await this.plugin.saveSettings();
-				}),
+				val
+					.setValue(this.plugin.settings.useNewScraper)
+					.onChange(async (value) => {
+						console.log(value);
+						this.plugin.settings.useNewScraper = value;
+						await this.plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)
 			.setName(i18n.settings.betterPlaceholder.name)
 			.setDesc(i18n.settings.betterPlaceholder.desc)
 			.addToggle((val) =>
-				val.setValue(this.plugin.settings.useBetterPasteId).onChange(async (value) => {
-					console.log(value);
-					this.plugin.settings.useBetterPasteId = value;
-					await this.plugin.saveSettings();
-				}),
+				val
+					.setValue(this.plugin.settings.useBetterPasteId)
+					.onChange(async (value) => {
+						console.log(value);
+						this.plugin.settings.useBetterPasteId = value;
+						await this.plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)
 			.setName(i18n.settings.apiKey.name)
 			.setDesc(i18n.settings.apiKey.desc)
 			.addText((text) =>
-				text.setValue(this.plugin.settings.linkPreviewApiKey || "").onChange(async (value) => {
-					const trimmedValue = value.trim();
-					if (trimmedValue.length > 0 && trimmedValue.length !== 32) {
-						new Notice(i18n.notices.apiKeyInvalid);
-						this.plugin.settings.linkPreviewApiKey = "";
-					} else {
-						this.plugin.settings.linkPreviewApiKey = trimmedValue;
-					}
-					await this.plugin.saveSettings();
-				}),
+				text
+					.setValue(this.plugin.settings.linkPreviewApiKey || "")
+					.onChange(async (value) => {
+						const trimmedValue = value.trim();
+						if (trimmedValue.length > 0 && trimmedValue.length !== 32) {
+							new Notice(i18n.notices.apiKeyInvalid);
+							this.plugin.settings.linkPreviewApiKey = "";
+						} else {
+							this.plugin.settings.linkPreviewApiKey = trimmedValue;
+						}
+						await this.plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)
 			.setName(i18n.settings.ignoreCodeBlocks.name)
 			.setDesc(i18n.settings.ignoreCodeBlocks.desc)
 			.addToggle((val) =>
-				val.setValue(this.plugin.settings.ignoreCodeBlocks).onChange(async (value) => {
-					this.plugin.settings.ignoreCodeBlocks = value;
-					await this.plugin.saveSettings();
-				}),
+				val
+					.setValue(this.plugin.settings.ignoreCodeBlocks)
+					.onChange(async (value) => {
+						this.plugin.settings.ignoreCodeBlocks = value;
+						await this.plugin.saveSettings();
+					}),
 			);
 
 		new Setting(containerEl)
 			.setName(i18n.settings.useTwitterProxy.name)
 			.setDesc(i18n.settings.useTwitterProxy.desc)
 			.addToggle((val) =>
-				val.setValue(this.plugin.settings.useTwitterProxy).onChange(async (value) => {
-					this.plugin.settings.useTwitterProxy = value;
-					await this.plugin.saveSettings();
-				}),
+				val
+					.setValue(this.plugin.settings.useTwitterProxy)
+					.onChange(async (value) => {
+						this.plugin.settings.useTwitterProxy = value;
+						await this.plugin.saveSettings();
+					}),
 			);
 	}
 }

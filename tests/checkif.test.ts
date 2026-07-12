@@ -4,27 +4,41 @@
  * Run with: bun test
  */
 import { describe, expect, test } from "bun:test";
-import { CheckIf, getUrlOnlyPasteParts, stripAngleBrackets } from "../src/checkif";
+import {
+	CheckIf,
+	getUrlOnlyPasteParts,
+	stripAngleBrackets,
+} from "../src/checkif";
 
 describe("stripAngleBrackets", () => {
 	test("strips angle brackets from autolink URL", () => {
-		expect(stripAngleBrackets("<https://example.com>")).toBe("https://example.com");
+		expect(stripAngleBrackets("<https://example.com>")).toBe(
+			"https://example.com",
+		);
 	});
 
 	test("strips angle brackets with surrounding whitespace", () => {
-		expect(stripAngleBrackets("  <https://example.com>  ")).toBe("https://example.com");
+		expect(stripAngleBrackets("  <https://example.com>  ")).toBe(
+			"https://example.com",
+		);
 	});
 
 	test("returns original text if not autolink format", () => {
-		expect(stripAngleBrackets("https://example.com")).toBe("https://example.com");
+		expect(stripAngleBrackets("https://example.com")).toBe(
+			"https://example.com",
+		);
 	});
 
 	test("returns original if only opening bracket", () => {
-		expect(stripAngleBrackets("<https://example.com")).toBe("<https://example.com");
+		expect(stripAngleBrackets("<https://example.com")).toBe(
+			"<https://example.com",
+		);
 	});
 
 	test("returns original if only closing bracket", () => {
-		expect(stripAngleBrackets("https://example.com>")).toBe("https://example.com>");
+		expect(stripAngleBrackets("https://example.com>")).toBe(
+			"https://example.com>",
+		);
 	});
 
 	test("handles empty string", () => {
@@ -60,7 +74,9 @@ describe("CheckIf.isUrl", () => {
 
 describe("getUrlOnlyPasteParts", () => {
 	test("splits multiple URLs while preserving whitespace", () => {
-		expect(getUrlOnlyPasteParts("https://example.com\nhttps://example.org")).toEqual([
+		expect(
+			getUrlOnlyPasteParts("https://example.com\nhttps://example.org"),
+		).toEqual([
 			{ type: "url", text: "https://example.com", url: "https://example.com" },
 			{ type: "text", text: "\n" },
 			{ type: "url", text: "https://example.org", url: "https://example.org" },
@@ -68,10 +84,20 @@ describe("getUrlOnlyPasteParts", () => {
 	});
 
 	test("supports angle-bracket autolinks", () => {
-		expect(getUrlOnlyPasteParts("<https://example.com>\n<https://example.org>")).toEqual([
-			{ type: "url", text: "<https://example.com>", url: "https://example.com" },
+		expect(
+			getUrlOnlyPasteParts("<https://example.com>\n<https://example.org>"),
+		).toEqual([
+			{
+				type: "url",
+				text: "<https://example.com>",
+				url: "https://example.com",
+			},
 			{ type: "text", text: "\n" },
-			{ type: "url", text: "<https://example.org>", url: "https://example.org" },
+			{
+				type: "url",
+				text: "<https://example.org>",
+				url: "https://example.org",
+			},
 		]);
 	});
 
@@ -114,7 +140,9 @@ describe("CheckIf.isLinkedUrl", () => {
 	});
 
 	test("returns true for link with hyphenated domain", () => {
-		expect(CheckIf.isLinkedUrl("[Title](http://www-cs-students.stanford.edu/)")).toBe(true);
+		expect(
+			CheckIf.isLinkedUrl("[Title](http://www-cs-students.stanford.edu/)"),
+		).toBe(true);
 	});
 
 	test("returns false for plain URL", () => {
@@ -128,11 +156,15 @@ describe("CheckIf.isLinkedUrl", () => {
 
 describe("CheckIf.isTwitterUrl", () => {
 	test("returns true for twitter.com", () => {
-		expect(CheckIf.isTwitterUrl("https://twitter.com/user/status/123")).toBe(true);
+		expect(CheckIf.isTwitterUrl("https://twitter.com/user/status/123")).toBe(
+			true,
+		);
 	});
 
 	test("returns true for www.twitter.com", () => {
-		expect(CheckIf.isTwitterUrl("https://www.twitter.com/user/status/123")).toBe(true);
+		expect(
+			CheckIf.isTwitterUrl("https://www.twitter.com/user/status/123"),
+		).toBe(true);
 	});
 
 	test("returns true for x.com", () => {
@@ -140,7 +172,9 @@ describe("CheckIf.isTwitterUrl", () => {
 	});
 
 	test("returns true for www.x.com", () => {
-		expect(CheckIf.isTwitterUrl("https://www.x.com/user/status/123")).toBe(true);
+		expect(CheckIf.isTwitterUrl("https://www.x.com/user/status/123")).toBe(
+			true,
+		);
 	});
 
 	test("returns false for other domains", () => {
@@ -159,15 +193,15 @@ describe("CheckIf.isTwitterUrl", () => {
 
 describe("CheckIf.toTwitterProxyUrl", () => {
 	test("converts twitter.com to fxtwitter.com", () => {
-		expect(CheckIf.toTwitterProxyUrl("https://twitter.com/user/status/123")).toBe(
-			"https://fxtwitter.com/user/status/123",
-		);
+		expect(
+			CheckIf.toTwitterProxyUrl("https://twitter.com/user/status/123"),
+		).toBe("https://fxtwitter.com/user/status/123");
 	});
 
 	test("converts www.twitter.com to fxtwitter.com", () => {
-		expect(CheckIf.toTwitterProxyUrl("https://www.twitter.com/user/status/123")).toBe(
-			"https://fxtwitter.com/user/status/123",
-		);
+		expect(
+			CheckIf.toTwitterProxyUrl("https://www.twitter.com/user/status/123"),
+		).toBe("https://fxtwitter.com/user/status/123");
 	});
 
 	test("converts x.com to fixupx.com", () => {
@@ -183,13 +217,15 @@ describe("CheckIf.toTwitterProxyUrl", () => {
 	});
 
 	test("returns original URL for non-Twitter domains", () => {
-		expect(CheckIf.toTwitterProxyUrl("https://example.com")).toBe("https://example.com");
+		expect(CheckIf.toTwitterProxyUrl("https://example.com")).toBe(
+			"https://example.com",
+		);
 	});
 
 	test("preserves path and query parameters", () => {
-		expect(CheckIf.toTwitterProxyUrl("https://twitter.com/user/status/123?s=20")).toBe(
-			"https://fxtwitter.com/user/status/123?s=20",
-		);
+		expect(
+			CheckIf.toTwitterProxyUrl("https://twitter.com/user/status/123?s=20"),
+		).toBe("https://fxtwitter.com/user/status/123?s=20");
 	});
 
 	test("returns original for invalid URL", () => {

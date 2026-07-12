@@ -41,7 +41,9 @@ describe("URL Regex (regex)", () => {
 
 	describe("domains with hyphens", () => {
 		test("hyphen in subdomain (www-cs-students)", () => {
-			expect(regex.test("http://www-cs-students.stanford.edu/~amitp/")).toBe(true);
+			expect(regex.test("http://www-cs-students.stanford.edu/~amitp/")).toBe(
+				true,
+			);
 		});
 
 		test("hyphen in domain name", () => {
@@ -49,7 +51,9 @@ describe("URL Regex (regex)", () => {
 		});
 
 		test("multiple hyphens in domain", () => {
-			expect(regex.test("https://this-is-a-very-long-domain.example.com")).toBe(true);
+			expect(regex.test("https://this-is-a-very-long-domain.example.com")).toBe(
+				true,
+			);
 		});
 
 		test("hyphen in TLD subdomain", () => {
@@ -134,14 +138,16 @@ describe("Markdown Link Regex (linkRegex)", () => {
 	});
 
 	test("matches link with hyphenated domain", () => {
-		expect(linkRegex.test("[Stanford](http://www-cs-students.stanford.edu/)")).toBe(true);
+		expect(
+			linkRegex.test("[Stanford](http://www-cs-students.stanford.edu/)"),
+		).toBe(true);
 	});
 
 	test("extracts title and URL", () => {
 		const match = "[My Title](https://example.com/page)".match(linkRegex);
 		expect(match).not.toBe(null);
-		expect(match![1]).toBe("My Title");
-		expect(match![2]).toBe("https://example.com/page");
+		expect(match?.[1]).toBe("My Title");
+		expect(match?.[2]).toBe("https://example.com/page");
 	});
 
 	test("does not match plain URL", () => {

@@ -4,28 +4,5 @@
 	"files": {
 		"ignoreUnknown": false,
 		"includes": ["**/*.ts", "**/*.js", "!main.js", "!**/node_modules"]
-	},
-	"linter": {
-		"rules": {
-			"suspicious": {
-				"noExplicitAny": "off",
-				"noAssignInExpressions": "off",
-				"noImplicitAnyLet": "off"
-			},
-			"style": {
-				"noNonNullAssertion": "off"
-			},
-			"complexity": {
-				"noStaticOnlyClass": "off"
-			},
-			"correctness": {
-				"noInnerDeclarations": "off"
-			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"semicolons": "always"
-		}
 	}
 }

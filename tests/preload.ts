@@ -9,16 +9,20 @@ globalThis.window = {
 		getItem: (_key: string) => "en",
 		setItem: (_key: string, _value: string) => {},
 	},
-} as any;
+} as Window & typeof globalThis;
+
+interface ContainerElementMock {
+	empty(): void;
+}
 
 // Mock the obsidian module
 mock.module("obsidian", () => ({
 	Notice: class Notice {},
 	PluginSettingTab: class PluginSettingTab {
-		app: any;
-		plugin: any;
-		containerEl: any = { empty: () => {} };
-		constructor(app: any, plugin: any) {
+		app: unknown;
+		plugin: unknown;
+		containerEl: ContainerElementMock = { empty: () => {} };
+		constructor(app: unknown, plugin: unknown) {
 			this.app = app;
 			this.plugin = plugin;
 		}
@@ -30,13 +34,13 @@ mock.module("obsidian", () => ({
 		setDesc(_desc: string) {
 			return this;
 		}
-		addToggle(_cb: any) {
+		addToggle(_cb: unknown) {
 			return this;
 		}
-		addText(_cb: any) {
+		addText(_cb: unknown) {
 			return this;
 		}
-		addTextArea(_cb: any) {
+		addTextArea(_cb: unknown) {
 			return this;
 		}
 	},

@@ -21,6 +21,45 @@ import {
 /** Default timeout for page loading (10 seconds) */
 const LOAD_TIMEOUT_MS = 10000;
 
+interface BrowserWindowLike {
+	destroy(): void;
+	isDestroyed(): boolean;
+	loadURL(url: string): void;
+	webContents: {
+		getTitle(): string;
+		on(event: "did-finish-load", listener: () => void): void;
+		on(event: "did-fail-load", listener: (event: unknown) => void): void;
+		on(
+			event: "will-navigate",
+			listener: (event: NavigationEventLike) => void,
+		): void;
+		removeListener(event: "did-finish-load", listener: () => void): void;
+		removeListener(
+			event: "did-fail-load",
+			listener: (event: unknown) => void,
+		): void;
+		setAudioMuted(muted: boolean): void;
+		setWindowOpenHandler(handler: () => { action: "deny" }): void;
+	};
+}
+
+interface NavigationEventLike {
+	preventDefault(): void;
+}
+
+interface ElectronRemoteLike {
+	BrowserWindow: new (options: {
+		height: number;
+		show: boolean;
+		webPreferences: {
+			images: boolean;
+			nodeIntegration: boolean;
+			webSecurity: boolean;
+		};
+		width: number;
+	}) => BrowserWindowLike;
+}
+
 /**
  * Async wrapper to load a URL in a BrowserWindow with timeout
  * @param window - Electron BrowserWindow instance
@@ -28,7 +67,11 @@ const LOAD_TIMEOUT_MS = 10000;
  * @param timeoutMs - Timeout in milliseconds
  * @returns Promise that resolves on load finish, rejects on failure or timeout
  */
-async function load(window: any, url: string, timeoutMs: number = LOAD_TIMEOUT_MS): Promise<void> {
+async function load(
+	window: BrowserWindowLike,
+	url: string,
+	timeoutMs: number = LOAD_TIMEOUT_MS,
+): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		let resolved = false;
 
@@ -45,7 +88,7 @@ async function load(window: any, url: string, timeoutMs: number = LOAD_TIMEOUT_M
 			}
 		};
 
-		const onFail = (event: any) => {
+		const onFail = (event: unknown) => {
 			if (!resolved) {
 				cleanup();
 				reject(event);
@@ -72,10 +115,10 @@ async function load(window: any, url: string, timeoutMs: number = LOAD_TIMEOUT_M
  * @returns Page title, URL as fallback, or empty string on error
  */
 async function electronGetPageTitle(url: string): Promise<string> {
-	const { remote } = electronPkg;
+	const { remote } = electronPkg as { remote: ElectronRemoteLike };
 	const { BrowserWindow } = remote;
 
-	let window: any = null;
+	let window: BrowserWindowLike | null = null;
 	try {
 		window = new BrowserWindow({
 			width: 1000,
@@ -90,7 +133,7 @@ async function electronGetPageTitle(url: string): Promise<string> {
 		window.webContents.setAudioMuted(true);
 
 		// Stop all redirects to prevent infinite loading
-		window.webContents.on("will-navigate", (event: any) => {
+		window.webContents.on("will-navigate", (event) => {
 			event.preventDefault();
 		});
 
@@ -121,7 +164,10 @@ async function electronGetPageTitle(url: string): Promise<string> {
  * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, URL as fallback, or empty string on error
  */
-async function nonElectronGetPageTitle(url: string, useTwitterProxy: boolean): Promise<string> {
+async function nonElectronGetPageTitle(
+	url: string,
+	useTwitterProxy: boolean,
+): Promise<string> {
 	try {
 		const { scrapeUrl, headers } = prepareTwitterScrape(url, useTwitterProxy);
 
@@ -202,7 +248,10 @@ async function tryGetFileType(url: string) {
  * @param useTwitterProxy - Whether to use Twitter proxy for scraping
  * @returns Page title, file name for non-HTML, or error message
  */
-export default async function getPageTitle(url: string, useTwitterProxy: boolean): Promise<string> {
+export default async function getPageTitle(
+	url: string,
+	useTwitterProxy: boolean,
+): Promise<string> {
 	url = normalizeUrl(url);
 
 	// For Twitter/X URLs, use HTTP request with proxy if enabled (BrowserWindow won't work well)

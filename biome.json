@@ -5,9 +5,6 @@
 		"ignoreUnknown": false,
 		"includes": ["**/*.ts", "**/*.js", "!main.js", "!**/node_modules"]
 	},
-	"formatter": {
-		"lineWidth": 100
-	},
 	"linter": {
 		"rules": {
 			"suspicious": {

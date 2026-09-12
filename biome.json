@@ -1,8 +1,15 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.3/schema.json",
-	"extends": ["@yuu1111/biome-config/biome"],
+	"extends": [
+		"@yuu1111/biome-config/biome"
+	],
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**/*.ts", "**/*.js", "!main.js", "!**/node_modules"]
+		"includes": [
+			"**/*.ts",
+			"**/*.js",
+			"!main.js",
+			"!**/node_modules"
+		]
 	}
 }
